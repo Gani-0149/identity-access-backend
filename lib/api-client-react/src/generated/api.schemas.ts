@@ -20,3 +20,13 @@ export interface UserRole {
   role: UserRoleRole;
 }
 
+export interface UserRegistration {
+  address: string;
+  name: string;
+}
+
+export interface UserRegistrationResponse {
+  success: boolean;
+  user: UserRegistration;
+}
+

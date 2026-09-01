@@ -6,22 +6,28 @@
  * OpenAPI spec version: 0.1.0
  */
 import {
+  useMutation,
   useQuery
 } from '@tanstack/react-query';
 import type {
+  MutationFunction,
   QueryFunction,
   QueryKey,
+  UseMutationOptions,
+  UseMutationResult,
   UseQueryOptions,
   UseQueryResult
 } from '@tanstack/react-query';
 
 import type {
   HealthStatus,
+  UserRegistration,
+  UserRegistrationResponse,
   UserRole
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
-import type { ErrorType } from '../custom-fetch';
+import type { ErrorType , BodyType } from '../custom-fetch';
 
 type AwaitedInput<T> = PromiseLike<T> | T;
 
@@ -202,4 +208,76 @@ export function useGetUserRole<TData = Awaited<ReturnType<typeof getUserRole>>, 
 
 
 
+
+export const getRegisterUserUrl = () => {
+
+
+
+
+  return `/api/user/register`
+}
+
+/**
+ * Stores a user in memory for the current server process
+ * @summary Register a user
+ */
+export const registerUser = async (userRegistration: UserRegistration, options?: Parameters<typeof customFetch>[1]): Promise<UserRegistrationResponse> => {
+
+  return customFetch<UserRegistrationResponse>(getRegisterUserUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(userRegistration)
+  }
+);}
+
+
+
+
+
+export const getRegisterUserMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof registerUser>>, TError,{data: BodyType<UserRegistration>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof registerUser>>, TError,{data: BodyType<UserRegistration>}, TContext> => {
+
+const mutationKey = ['registerUser'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof registerUser>>, {data: BodyType<UserRegistration>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  registerUser(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RegisterUserMutationResult = NonNullable<Awaited<ReturnType<typeof registerUser>>>
+    export type RegisterUserMutationBody = BodyType<UserRegistration>
+    export type RegisterUserMutationError = ErrorType<void>
+
+    /**
+ * @summary Register a user
+ */
+export const useRegisterUser = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof registerUser>>, TError,{data: BodyType<UserRegistration>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof registerUser>>,
+        TError,
+        {data: BodyType<UserRegistration>},
+        TContext
+      > => {
+      return useMutation(getRegisterUserMutationOptions(options));
+    }
 

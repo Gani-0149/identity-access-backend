@@ -30,3 +30,21 @@ export const GetUserRoleResponse = zod.object({
 })
 
 
+/**
+ * Stores a user in memory for the current server process
+ * @summary Register a user
+ */
+export const RegisterUserBody = zod.object({
+  "address": zod.string(),
+  "name": zod.string()
+})
+
+export const RegisterUserResponse = zod.object({
+  "success": zod.boolean(),
+  "user": zod.object({
+  "address": zod.string(),
+  "name": zod.string()
+})
+})
+
+

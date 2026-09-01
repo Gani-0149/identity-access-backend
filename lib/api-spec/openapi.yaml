@@ -45,6 +45,27 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/UserRole"
+  /user/register:
+    post:
+      operationId: registerUser
+      tags: [user]
+      summary: Register a user
+      description: Stores a user in memory for the current server process
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserRegistration"
+      responses:
+        "201":
+          description: User registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserRegistrationResponse"
+        "400":
+          description: Invalid registration data
 components:
   schemas:
     HealthStatus:
@@ -62,4 +83,24 @@ components:
           enum: [USER]
       required:
         - role
+    UserRegistration:
+      type: object
+      properties:
+        address:
+          type: string
+        name:
+          type: string
+      required:
+        - address
+        - name
+    UserRegistrationResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        user:
+          $ref: "#/components/schemas/UserRegistration"
+      required:
+        - success
+        - user
 
