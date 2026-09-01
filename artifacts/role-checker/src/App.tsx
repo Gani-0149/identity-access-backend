@@ -105,7 +105,7 @@ function Home() {
             <Form {...form}>
               <form onSubmit={form.handleSubmit(handleLookup)} className="mt-10 max-w-xl">
                 <label htmlFor="address" className="mono-font mb-3 block text-[10px] font-bold uppercase tracking-[0.18em] text-foreground">
-                  Address to inspect
+                  Wallet address
                 </label>
                 <div className="group relative flex flex-col gap-3 sm:flex-row">
                   <div className="relative min-w-0 flex-1">
@@ -116,7 +116,7 @@ function Home() {
                       aria-invalid={Boolean(form.formState.errors.address)}
                       autoComplete="off"
                       spellCheck={false}
-                      placeholder="0x… or account address"
+                      placeholder="Enter wallet address"
                       {...form.register('address')}
                       className="h-14 w-full rounded-xl border border-input bg-card/80 pl-12 pr-4 font-mono text-sm text-foreground shadow-sm outline-none transition-[border-color,box-shadow,background-color] duration-200 placeholder:text-muted-foreground/70 focus:border-secondary focus:bg-card focus:ring-4 focus:ring-secondary/15"
                     />
@@ -127,7 +127,7 @@ function Home() {
                     disabled={isLookingUp}
                     className="group/button inline-flex h-14 items-center justify-center gap-3 rounded-xl bg-foreground px-6 font-bold text-primary shadow-[4px_4px_0_hsl(var(--primary))] outline-none transition-[transform,box-shadow,background-color] duration-200 hover:bg-secondary hover:text-secondary-foreground focus-visible:ring-4 focus-visible:ring-secondary/30 active:translate-x-[2px] active:translate-y-[2px] active:shadow-[2px_2px_0_hsl(var(--primary))] disabled:cursor-wait disabled:opacity-75 sm:shrink-0"
                   >
-                    {isLookingUp ? 'Looking up' : 'Check role'}
+                    Check Role
                     <ArrowRight className="size-[17px] transition-transform duration-200 group-hover/button:translate-x-1" />
                   </button>
                 </div>
