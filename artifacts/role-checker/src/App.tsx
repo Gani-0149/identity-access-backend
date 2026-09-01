@@ -1,31 +1,20 @@
 import { type FormEvent, type ReactNode, useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useForm } from 'react-hook-form';
-import { Activity, ArrowRight, Check, CircleAlert, Code2, ScanLine } from 'lucide-react';
 import {
   getGetUserRoleQueryKey,
-  getHealthCheckQueryKey,
   useGetUserRole,
   useRegisterUser,
-  useHealthCheck,
 } from '@workspace/api-client-react';
 import { ErrorBoundary } from '@/components/error-boundary';
-import { Form } from '@/components/ui/form';
-import { Toaster } from '@/components/ui/toaster';
-import { TooltipProvider } from '@/components/ui/tooltip';
 import NotFound from '@/pages/not-found';
 import {
   Route,
+  Router as WouterRouter,
   Switch,
   useLocation,
-  Router as WouterRouter,
 } from 'wouter';
 
 const queryClient = new QueryClient();
-
-type AddressForm = {
-  address: string;
-};
 
 type RegistrationResponse = {
   success: boolean;
@@ -37,292 +26,146 @@ type RegistrationResponse = {
 };
 
 function Home() {
-  const form = useForm<AddressForm>({ defaultValues: { address: '' } });
-  const [submittedAddress, setSubmittedAddress] = useState('');
+  const [address, setAddress] = useState('');
+  const [connectedAddress, setConnectedAddress] = useState('');
+  const [connectError, setConnectError] = useState('');
   const [registrationAddress, setRegistrationAddress] = useState('');
   const [registrationName, setRegistrationName] = useState('');
   const [registrationResponse, setRegistrationResponse] =
     useState<RegistrationResponse | null>(null);
   const [registrationError, setRegistrationError] = useState('');
-  const health = useHealthCheck({ query: { queryKey: getHealthCheckQueryKey() } });
-  const roleQuery = useGetUserRole(submittedAddress, {
+
+  const roleQuery = useGetUserRole(connectedAddress, {
     query: {
-      enabled: submittedAddress.length > 0,
-      queryKey: getGetUserRoleQueryKey(submittedAddress),
+      enabled: connectedAddress.length > 0,
+      queryKey: getGetUserRoleQueryKey(connectedAddress),
     },
   });
   const registerMutation = useRegisterUser();
-  const isLookingUp = roleQuery.isLoading || roleQuery.isFetching;
-  const hasResult = Boolean(roleQuery.data);
-  const healthLabel = health.isLoading
-    ? 'CHECKING'
-    : health.isError
-      ? 'OFFLINE'
-      : String(health.data?.status ?? 'ONLINE').toUpperCase();
-  const errorMessage =
-    roleQuery.error instanceof Error
-      ? roleQuery.error.message
-      : 'The service could not resolve that address. Try again.';
 
-  const handleLookup = ({ address }: AddressForm) => {
+  const handleConnect = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
     const normalizedAddress = address.trim();
+
     if (!normalizedAddress) {
-      form.setError('address', {
-        type: 'manual',
-        message: 'Enter an address to run a lookup.',
-      });
+      setConnectError('Enter a wallet address first.');
+      setConnectedAddress('');
       return;
     }
 
-    form.clearErrors('address');
-    if (normalizedAddress === submittedAddress) {
-      void roleQuery.refetch();
-      return;
-    }
-    setSubmittedAddress(normalizedAddress);
+    setConnectError('');
+    setConnectedAddress(normalizedAddress);
   };
 
   const handleRegister = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const address = registrationAddress.trim();
-    const name = registrationName.trim();
+    const normalizedAddress = registrationAddress.trim();
+    const normalizedName = registrationName.trim();
 
     setRegistrationResponse(null);
     setRegistrationError('');
 
-    if (!address || !name) {
-      setRegistrationError('Enter both a wallet address and a name.');
+    if (!normalizedAddress || !normalizedName) {
+      setRegistrationError('Enter both an address and a name.');
       return;
     }
 
     try {
       const response = await registerMutation.mutateAsync({
-        data: { address, name },
+        data: {
+          address: normalizedAddress,
+          name: normalizedName,
+        },
       });
       setRegistrationResponse(response);
     } catch (error) {
       setRegistrationError(
         error instanceof Error
           ? error.message
-          : 'The registration request failed. Try again.',
+          : 'Registration failed. Please try again.',
       );
     }
   };
 
   return (
-    <main className="role-app">
-      <div className="relative z-10 mx-auto flex min-h-[100dvh] w-full max-w-6xl flex-col px-5 sm:px-8 lg:px-12">
-        <header className="flex items-center justify-between border-b border-foreground/15 py-5">
-          <div className="flex items-center gap-3">
-            <div className="flex size-9 items-center justify-center rounded-lg bg-foreground text-primary shadow-[3px_3px_0_hsl(var(--primary))]">
-              <Code2 className="size-[18px]" strokeWidth={2.5} />
+    <main className="app">
+      <header className="page-header">
+        <h1>Identity Access Platform</h1>
+        <p>Connect a wallet to view its role.</p>
+      </header>
+
+      <form className="connect-form" onSubmit={handleConnect}>
+        <label htmlFor="wallet-address">Wallet address</label>
+        <div className="connect-row">
+          <input
+            id="wallet-address"
+            value={address}
+            onChange={(event) => setAddress(event.target.value)}
+            placeholder="Enter wallet address"
+            autoComplete="off"
+            spellCheck={false}
+          />
+          <button type="submit">Connect</button>
+        </div>
+        {connectError ? <p className="error">{connectError}</p> : null}
+      </form>
+
+      <div className="sections">
+        <section className="section" aria-live="polite">
+          <h2>Your role</h2>
+          {!connectedAddress ? (
+            <p className="muted">Connect a wallet to see its role.</p>
+          ) : roleQuery.isLoading || roleQuery.isFetching ? (
+            <p className="muted">Loading role...</p>
+          ) : roleQuery.isError ? (
+            <p className="error">Unable to load the role.</p>
+          ) : (
+            <div className="role-result">
+              <span className="role-label">Role</span>
+              <strong>{roleQuery.data?.role ?? 'Unknown'}</strong>
+              <span className="address">{connectedAddress}</span>
             </div>
-            <div className="leading-none">
-              <div className="display-font text-sm font-extrabold tracking-[-0.04em]">ROLE CHECK</div>
-              <div className="mono-font mt-1 text-[9px] uppercase tracking-[0.18em] text-muted-foreground">address intelligence</div>
-            </div>
-          </div>
-          <div className="mono-font flex items-center gap-2 text-[10px] font-bold tracking-[0.12em] text-muted-foreground">
-            <Activity className={`size-3 ${health.isError ? 'text-destructive' : 'text-accent'}`} />
-            <span data-testid="status-api">{healthLabel}</span>
-          </div>
-        </header>
-
-        <section className="page-enter grid flex-1 items-center gap-12 py-14 lg:grid-cols-[1fr_0.92fr] lg:gap-24 lg:py-20">
-          <div className="max-w-xl">
-            <div className="mono-font mb-7 flex items-center gap-3 text-[10px] font-bold uppercase tracking-[0.2em] text-secondary">
-              <span className="h-px w-8 bg-secondary" />
-              fast path / 01
-            </div>
-            <h1 className="display-font max-w-lg text-[clamp(3.5rem,8vw,6.9rem)] font-extrabold leading-[0.86] tracking-[-0.08em] text-foreground">
-              Know the
-              <span className="relative mx-2 inline-block">
-                role.
-                <span className="absolute -bottom-1 left-0 h-2 w-full -skew-x-12 bg-primary/80 lg:h-3" />
-              </span>
-            </h1>
-            <p className="mt-8 max-w-md text-base leading-7 text-muted-foreground sm:text-lg">
-              Paste an address. Get the assigned role. One clean answer for the moment you need it.
-            </p>
-
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(handleLookup)} className="mt-10 max-w-xl">
-                <label htmlFor="address" className="mono-font mb-3 block text-[10px] font-bold uppercase tracking-[0.18em] text-foreground">
-                  Wallet address
-                </label>
-                <div className="group relative flex flex-col gap-3 sm:flex-row">
-                  <div className="relative min-w-0 flex-1">
-                    <ScanLine className="pointer-events-none absolute left-4 top-1/2 size-[18px] -translate-y-1/2 text-muted-foreground transition-colors duration-200 group-focus-within:text-secondary" />
-                    <input
-                      id="address"
-                      data-testid="input-address"
-                      aria-invalid={Boolean(form.formState.errors.address)}
-                      autoComplete="off"
-                      spellCheck={false}
-                      placeholder="Enter wallet address"
-                      {...form.register('address')}
-                      className="h-14 w-full rounded-xl border border-input bg-card/80 pl-12 pr-4 font-mono text-sm text-foreground shadow-sm outline-none transition-[border-color,box-shadow,background-color] duration-200 placeholder:text-muted-foreground/70 focus:border-secondary focus:bg-card focus:ring-4 focus:ring-secondary/15"
-                    />
-                  </div>
-                  <button
-                    type="submit"
-                    data-testid="button-lookup"
-                    disabled={isLookingUp}
-                    className="group/button inline-flex h-14 items-center justify-center gap-3 rounded-xl bg-foreground px-6 font-bold text-primary shadow-[4px_4px_0_hsl(var(--primary))] outline-none transition-[transform,box-shadow,background-color] duration-200 hover:bg-secondary hover:text-secondary-foreground focus-visible:ring-4 focus-visible:ring-secondary/30 active:translate-x-[2px] active:translate-y-[2px] active:shadow-[2px_2px_0_hsl(var(--primary))] disabled:cursor-wait disabled:opacity-75 sm:shrink-0"
-                  >
-                    Check Role
-                    <ArrowRight className="size-[17px] transition-transform duration-200 group-hover/button:translate-x-1" />
-                  </button>
-                </div>
-                {form.formState.errors.address ? (
-                  <p data-testid="error-address" className="mt-3 text-sm font-medium text-destructive">
-                    {form.formState.errors.address.message}
-                  </p>
-                ) : (
-                  <p className="mono-font mt-3 text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
-                    Read-only lookup · no wallet connection required
-                  </p>
-                )}
-              </form>
-            </Form>
-
-            <form onSubmit={handleRegister} className="mt-12 max-w-xl border-t border-foreground/15 pt-8">
-              <div className="mono-font mb-5 flex items-center gap-3 text-[10px] font-bold uppercase tracking-[0.2em] text-secondary">
-                <span className="h-px w-8 bg-secondary" />
-                register user / 02
-              </div>
-              <h2 className="display-font text-2xl font-bold tracking-[-0.05em] text-foreground">
-                Add a user
-              </h2>
-              <p className="mt-2 max-w-md text-sm leading-6 text-muted-foreground">
-                Save an address and name in the current server session.
-              </p>
-              <div className="mt-6 grid gap-3 sm:grid-cols-2">
-                <label className="block">
-                  <span className="mono-font mb-2 block text-[10px] font-bold uppercase tracking-[0.16em] text-foreground">
-                    Address
-                  </span>
-                  <input
-                    value={registrationAddress}
-                    onChange={(event) => setRegistrationAddress(event.target.value)}
-                    autoComplete="off"
-                    spellCheck={false}
-                    placeholder="Wallet address"
-                    className="h-12 w-full rounded-xl border border-input bg-card/80 px-4 font-mono text-sm text-foreground shadow-sm outline-none transition-[border-color,box-shadow,background-color] duration-200 placeholder:text-muted-foreground/70 focus:border-secondary focus:bg-card focus:ring-4 focus:ring-secondary/15"
-                  />
-                </label>
-                <label className="block">
-                  <span className="mono-font mb-2 block text-[10px] font-bold uppercase tracking-[0.16em] text-foreground">
-                    Name
-                  </span>
-                  <input
-                    value={registrationName}
-                    onChange={(event) => setRegistrationName(event.target.value)}
-                    autoComplete="name"
-                    placeholder="Display name"
-                    className="h-12 w-full rounded-xl border border-input bg-card/80 px-4 text-sm text-foreground shadow-sm outline-none transition-[border-color,box-shadow,background-color] duration-200 placeholder:text-muted-foreground/70 focus:border-secondary focus:bg-card focus:ring-4 focus:ring-secondary/15"
-                  />
-                </label>
-              </div>
-              <button
-                type="submit"
-                disabled={registerMutation.isPending}
-                className="mt-4 inline-flex h-12 items-center justify-center gap-3 rounded-xl bg-secondary px-6 font-bold text-secondary-foreground shadow-[4px_4px_0_hsl(var(--foreground)/0.15)] outline-none transition-[transform,box-shadow,background-color] duration-200 hover:bg-foreground hover:text-primary focus-visible:ring-4 focus-visible:ring-secondary/30 active:translate-x-[2px] active:translate-y-[2px] active:shadow-[2px_2px_0_hsl(var(--foreground)/0.15)] disabled:cursor-wait disabled:opacity-75"
-              >
-                Register
-                <ArrowRight className="size-[17px]" />
-              </button>
-            </form>
-
-            <section className="mt-6 rounded-xl border border-foreground/15 bg-card/60 p-5" aria-live="polite">
-              <div className="mono-font mb-3 text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
-                Registration result
-              </div>
-              {registrationError ? (
-                <p className="text-sm font-medium text-destructive">{registrationError}</p>
-              ) : registrationResponse ? (
-                <pre className="overflow-x-auto whitespace-pre-wrap break-words font-mono text-xs leading-6 text-foreground">
-                  {JSON.stringify(registrationResponse, null, 2)}
-                </pre>
-              ) : (
-                <p className="text-sm leading-6 text-muted-foreground">
-                  Submit the form to see the API response.
-                </p>
-              )}
-            </section>
-          </div>
-
-          <div className="relative">
-            <div className="absolute -right-3 -top-3 size-16 rounded-full border border-secondary/30" />
-            <div className="absolute -bottom-5 -left-5 size-8 bg-primary" />
-            <section className="relative min-h-[350px] overflow-hidden rounded-2xl border border-foreground/15 bg-card p-6 shadow-[8px_8px_0_hsl(var(--foreground)/0.12)] sm:p-8" aria-live="polite">
-              <div className="flex items-center justify-between border-b border-border pb-5">
-                <div className="mono-font text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
-                  Lookup result
-                </div>
-                <div className="mono-font text-[10px] text-muted-foreground">ROLE / 001</div>
-              </div>
-
-              {!submittedAddress ? (
-                <div className="flex min-h-[260px] flex-col items-center justify-center text-center">
-                  <div className="mb-5 flex size-16 items-center justify-center rounded-2xl border border-dashed border-secondary/50 bg-secondary/5 text-secondary">
-                    <Code2 className="size-7" strokeWidth={1.5} />
-                  </div>
-                  <p data-testid="text-empty-result" className="display-font text-xl font-bold tracking-[-0.04em]">Waiting on an address</p>
-                  <p className="mt-2 max-w-[220px] text-sm leading-6 text-muted-foreground">Your resolved role will appear here.</p>
-                </div>
-              ) : isLookingUp ? (
-                <div data-testid="status-loading" className="result-enter flex min-h-[260px] flex-col justify-center">
-                  <div className="mono-font mb-5 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.16em] text-secondary">
-                    <span className="size-2 animate-pulse rounded-full bg-secondary" />
-                    Querying role service
-                  </div>
-                  <div className="skeleton-shimmer h-16 w-40 rounded-lg" />
-                  <div className="skeleton-shimmer mt-5 h-4 w-full max-w-[270px] rounded" />
-                  <div className="skeleton-shimmer mt-3 h-4 w-3/4 max-w-[205px] rounded" />
-                </div>
-              ) : roleQuery.isError ? (
-                <div data-testid="status-error" className="result-enter flex min-h-[260px] flex-col justify-center">
-                  <div className="mb-5 flex size-12 items-center justify-center rounded-xl bg-destructive/10 text-destructive">
-                    <CircleAlert className="size-6" />
-                  </div>
-                  <p className="display-font text-xl font-bold tracking-[-0.04em]">Lookup failed</p>
-                  <p className="mt-2 max-w-sm text-sm leading-6 text-muted-foreground">{errorMessage}</p>
-                  <button
-                    type="button"
-                    data-testid="button-retry"
-                    onClick={() => void roleQuery.refetch()}
-                    className="mt-6 w-fit rounded-lg border border-foreground/20 px-4 py-2 text-sm font-bold text-foreground outline-none transition-colors hover:border-secondary hover:text-secondary focus-visible:ring-4 focus-visible:ring-secondary/20"
-                  >
-                    Try again
-                  </button>
-                </div>
-              ) : hasResult ? (
-                <div data-testid="status-result" className="result-enter flex min-h-[260px] flex-col justify-between pt-8">
-                  <div>
-                    <div className="mono-font mb-3 text-[10px] font-bold uppercase tracking-[0.18em] text-accent">Assigned role</div>
-                    <div data-testid="text-role" className="display-font text-6xl font-extrabold tracking-[-0.08em] text-secondary sm:text-7xl">
-                      {roleQuery.data?.role}
-                    </div>
-                  </div>
-                  <div className="mt-12 border-t border-border pt-5">
-                    <div className="mono-font mb-2 text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Inspected address</div>
-                    <div data-testid="text-address" className="break-all font-mono text-xs leading-5 text-foreground">{submittedAddress}</div>
-                    <div className="mt-5 inline-flex items-center gap-2 rounded-full bg-primary px-3 py-1.5 text-[11px] font-bold text-primary-foreground">
-                      <Check className="size-3.5" strokeWidth={3} />
-                      Verified response
-                    </div>
-                  </div>
-                </div>
-              ) : null}
-            </section>
-          </div>
+          )}
         </section>
 
-        <footer className="flex flex-col gap-2 border-t border-foreground/15 py-5 text-[10px] text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-          <span className="mono-font uppercase tracking-[0.14em]">Role Check / developer utility</span>
-          <span className="mono-font uppercase tracking-[0.14em]">Results are read directly from the role service</span>
-        </footer>
+        <section className="section">
+          <h2>Register a user</h2>
+          <form className="registration-form" onSubmit={handleRegister}>
+            <label htmlFor="registration-address">Address</label>
+            <input
+              id="registration-address"
+              value={registrationAddress}
+              onChange={(event) => setRegistrationAddress(event.target.value)}
+              placeholder="Wallet address"
+              autoComplete="off"
+              spellCheck={false}
+            />
+
+            <label htmlFor="registration-name">Name</label>
+            <input
+              id="registration-name"
+              value={registrationName}
+              onChange={(event) => setRegistrationName(event.target.value)}
+              placeholder="Name"
+              autoComplete="name"
+            />
+
+            <button type="submit" disabled={registerMutation.isPending}>
+              {registerMutation.isPending ? 'Registering...' : 'Register'}
+            </button>
+          </form>
+
+          <div className="registration-result" aria-live="polite">
+            <h3>Registration result</h3>
+            {registrationError ? (
+              <p className="error">{registrationError}</p>
+            ) : registrationResponse ? (
+              <pre>{JSON.stringify(registrationResponse, null, 2)}</pre>
+            ) : (
+              <p className="muted">The API response will appear here.</p>
+            )}
+          </div>
+        </section>
       </div>
     </main>
   );
@@ -330,8 +173,6 @@ function Home() {
 
 function Router() {
   return (
-    // Keep a shared shell (sidebar, navbar) outside the boundary so it
-    // survives a page crash.
     <RoutedErrorBoundary>
       <Switch>
         <Route path="/" component={Home} />
@@ -349,12 +190,9 @@ function RoutedErrorBoundary({ children }: { children: ReactNode }) {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}>
-          <Router />
-        </WouterRouter>
-        <Toaster />
-      </TooltipProvider>
+      <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}>
+        <Router />
+      </WouterRouter>
     </QueryClientProvider>
   );
 }
