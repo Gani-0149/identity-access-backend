@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Role Checker"
+description = "A simple browser page where users enter an address, call the API role endpoint, and see the returned role."
+version = "1.0.0"
+id = "artifacts/role-checker"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 24432
+
+[services.development]
+run = "pnpm --filter @workspace/role-checker run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/role-checker", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/role-checker/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "24432"
+BASE_PATH = "/"

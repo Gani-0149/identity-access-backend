@@ -10,6 +10,8 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: user
+    description: User operations
 paths:
   /healthz:
     get:
@@ -24,6 +26,25 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /user/{address}/role:
+    get:
+      operationId: getUserRole
+      tags: [user]
+      summary: Get a user's role
+      description: Returns the role associated with the provided address
+      parameters:
+        - name: address
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: User role
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserRole"
 components:
   schemas:
     HealthStatus:
@@ -33,4 +54,12 @@ components:
           type: string
       required:
         - status
+    UserRole:
+      type: object
+      properties:
+        role:
+          type: string
+          enum: [USER]
+      required:
+        - role
 

@@ -5,9 +5,6 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
-export interface HealthStatus {
-  status: string;
-}
 
 export type UserRoleRole = typeof UserRoleRole[keyof typeof UserRoleRole];
 
@@ -15,8 +12,3 @@ export type UserRoleRole = typeof UserRoleRole[keyof typeof UserRoleRole];
 export const UserRoleRole = {
   USER: 'USER',
 } as const;
-
-export interface UserRole {
-  role: UserRoleRole;
-}
-
