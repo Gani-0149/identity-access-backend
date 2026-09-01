@@ -1,4 +1,4 @@
-import { type ReactNode, useState } from 'react';
+import { type FormEvent, type ReactNode, useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { Activity, ArrowRight, Check, CircleAlert, Code2, ScanLine } from 'lucide-react';
@@ -6,6 +6,7 @@ import {
   getGetUserRoleQueryKey,
   getHealthCheckQueryKey,
   useGetUserRole,
+  useRegisterUser,
   useHealthCheck,
 } from '@workspace/api-client-react';
 import { ErrorBoundary } from '@/components/error-boundary';
@@ -26,9 +27,23 @@ type AddressForm = {
   address: string;
 };
 
+type RegistrationResponse = {
+  success: boolean;
+  user?: {
+    address: string;
+    name: string;
+  };
+  error?: string;
+};
+
 function Home() {
   const form = useForm<AddressForm>({ defaultValues: { address: '' } });
   const [submittedAddress, setSubmittedAddress] = useState('');
+  const [registrationAddress, setRegistrationAddress] = useState('');
+  const [registrationName, setRegistrationName] = useState('');
+  const [registrationResponse, setRegistrationResponse] =
+    useState<RegistrationResponse | null>(null);
+  const [registrationError, setRegistrationError] = useState('');
   const health = useHealthCheck({ query: { queryKey: getHealthCheckQueryKey() } });
   const roleQuery = useGetUserRole(submittedAddress, {
     query: {
@@ -36,6 +51,7 @@ function Home() {
       queryKey: getGetUserRoleQueryKey(submittedAddress),
     },
   });
+  const registerMutation = useRegisterUser();
   const isLookingUp = roleQuery.isLoading || roleQuery.isFetching;
   const hasResult = Boolean(roleQuery.data);
   const healthLabel = health.isLoading
@@ -64,6 +80,33 @@ function Home() {
       return;
     }
     setSubmittedAddress(normalizedAddress);
+  };
+
+  const handleRegister = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const address = registrationAddress.trim();
+    const name = registrationName.trim();
+
+    setRegistrationResponse(null);
+    setRegistrationError('');
+
+    if (!address || !name) {
+      setRegistrationError('Enter both a wallet address and a name.');
+      return;
+    }
+
+    try {
+      const response = await registerMutation.mutateAsync({
+        data: { address, name },
+      });
+      setRegistrationResponse(response);
+    } catch (error) {
+      setRegistrationError(
+        error instanceof Error
+          ? error.message
+          : 'The registration request failed. Try again.',
+      );
+    }
   };
 
   return (
@@ -142,6 +185,71 @@ function Home() {
                 )}
               </form>
             </Form>
+
+            <form onSubmit={handleRegister} className="mt-12 max-w-xl border-t border-foreground/15 pt-8">
+              <div className="mono-font mb-5 flex items-center gap-3 text-[10px] font-bold uppercase tracking-[0.2em] text-secondary">
+                <span className="h-px w-8 bg-secondary" />
+                register user / 02
+              </div>
+              <h2 className="display-font text-2xl font-bold tracking-[-0.05em] text-foreground">
+                Add a user
+              </h2>
+              <p className="mt-2 max-w-md text-sm leading-6 text-muted-foreground">
+                Save an address and name in the current server session.
+              </p>
+              <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                <label className="block">
+                  <span className="mono-font mb-2 block text-[10px] font-bold uppercase tracking-[0.16em] text-foreground">
+                    Address
+                  </span>
+                  <input
+                    value={registrationAddress}
+                    onChange={(event) => setRegistrationAddress(event.target.value)}
+                    autoComplete="off"
+                    spellCheck={false}
+                    placeholder="Wallet address"
+                    className="h-12 w-full rounded-xl border border-input bg-card/80 px-4 font-mono text-sm text-foreground shadow-sm outline-none transition-[border-color,box-shadow,background-color] duration-200 placeholder:text-muted-foreground/70 focus:border-secondary focus:bg-card focus:ring-4 focus:ring-secondary/15"
+                  />
+                </label>
+                <label className="block">
+                  <span className="mono-font mb-2 block text-[10px] font-bold uppercase tracking-[0.16em] text-foreground">
+                    Name
+                  </span>
+                  <input
+                    value={registrationName}
+                    onChange={(event) => setRegistrationName(event.target.value)}
+                    autoComplete="name"
+                    placeholder="Display name"
+                    className="h-12 w-full rounded-xl border border-input bg-card/80 px-4 text-sm text-foreground shadow-sm outline-none transition-[border-color,box-shadow,background-color] duration-200 placeholder:text-muted-foreground/70 focus:border-secondary focus:bg-card focus:ring-4 focus:ring-secondary/15"
+                  />
+                </label>
+              </div>
+              <button
+                type="submit"
+                disabled={registerMutation.isPending}
+                className="mt-4 inline-flex h-12 items-center justify-center gap-3 rounded-xl bg-secondary px-6 font-bold text-secondary-foreground shadow-[4px_4px_0_hsl(var(--foreground)/0.15)] outline-none transition-[transform,box-shadow,background-color] duration-200 hover:bg-foreground hover:text-primary focus-visible:ring-4 focus-visible:ring-secondary/30 active:translate-x-[2px] active:translate-y-[2px] active:shadow-[2px_2px_0_hsl(var(--foreground)/0.15)] disabled:cursor-wait disabled:opacity-75"
+              >
+                Register
+                <ArrowRight className="size-[17px]" />
+              </button>
+            </form>
+
+            <section className="mt-6 rounded-xl border border-foreground/15 bg-card/60 p-5" aria-live="polite">
+              <div className="mono-font mb-3 text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+                Registration result
+              </div>
+              {registrationError ? (
+                <p className="text-sm font-medium text-destructive">{registrationError}</p>
+              ) : registrationResponse ? (
+                <pre className="overflow-x-auto whitespace-pre-wrap break-words font-mono text-xs leading-6 text-foreground">
+                  {JSON.stringify(registrationResponse, null, 2)}
+                </pre>
+              ) : (
+                <p className="text-sm leading-6 text-muted-foreground">
+                  Submit the form to see the API response.
+                </p>
+              )}
+            </section>
           </div>
 
           <div className="relative">
