@@ -6,6 +6,8 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface UserRole {
+export interface User {
+  address: string;
+  name: string;
   role: string;
 }

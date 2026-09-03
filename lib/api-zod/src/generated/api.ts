@@ -26,7 +26,7 @@ export const GetUserRoleParams = zod.object({
 })
 
 export const GetUserRoleResponse = zod.object({
-  "role": zod.enum(['USER'])
+  "role": zod.string()
 })
 
 
@@ -43,7 +43,27 @@ export const RegisterUserResponse = zod.object({
   "success": zod.boolean(),
   "user": zod.object({
   "address": zod.string(),
-  "name": zod.string()
+  "name": zod.string(),
+  "role": zod.string()
+})
+})
+
+
+/**
+ * Updates the role for a registered user in the current server process
+ * @summary Assign a user's role
+ */
+export const AssignUserRoleBody = zod.object({
+  "address": zod.string(),
+  "role": zod.string()
+})
+
+export const AssignUserRoleResponse = zod.object({
+  "success": zod.boolean(),
+  "user": zod.object({
+  "address": zod.string(),
+  "name": zod.string(),
+  "role": zod.string()
 })
 })
 

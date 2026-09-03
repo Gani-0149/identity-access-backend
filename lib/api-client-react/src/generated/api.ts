@@ -23,7 +23,9 @@ import type {
   HealthStatus,
   UserRegistration,
   UserRegistrationResponse,
-  UserRole
+  UserRole,
+  UserRoleAssignment,
+  UserRoleAssignmentResponse
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -165,7 +167,7 @@ export const getGetUserRoleQueryKey = (address: string,) => {
     }
 
 
-export const getGetUserRoleQueryOptions = <TData = Awaited<ReturnType<typeof getUserRole>>, TError = ErrorType<unknown>>(address: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getUserRole>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getGetUserRoleQueryOptions = <TData = Awaited<ReturnType<typeof getUserRole>>, TError = ErrorType<void>>(address: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getUserRole>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -184,14 +186,14 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 }
 
 export type GetUserRoleQueryResult = NonNullable<Awaited<ReturnType<typeof getUserRole>>>
-export type GetUserRoleQueryError = ErrorType<unknown>
+export type GetUserRoleQueryError = ErrorType<void>
 
 
 /**
  * @summary Get a user's role
  */
 
-export function useGetUserRole<TData = Awaited<ReturnType<typeof getUserRole>>, TError = ErrorType<unknown>>(
+export function useGetUserRole<TData = Awaited<ReturnType<typeof getUserRole>>, TError = ErrorType<void>>(
  address: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getUserRole>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
@@ -279,5 +281,77 @@ export const useRegisterUser = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getRegisterUserMutationOptions(options));
+    }
+
+export const getAssignUserRoleUrl = () => {
+
+
+
+
+  return `/api/user/assign-role`
+}
+
+/**
+ * Updates the role for a registered user in the current server process
+ * @summary Assign a user's role
+ */
+export const assignUserRole = async (userRoleAssignment: UserRoleAssignment, options?: Parameters<typeof customFetch>[1]): Promise<UserRoleAssignmentResponse> => {
+
+  return customFetch<UserRoleAssignmentResponse>(getAssignUserRoleUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(userRoleAssignment)
+  }
+);}
+
+
+
+
+
+export const getAssignUserRoleMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof assignUserRole>>, TError,{data: BodyType<UserRoleAssignment>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof assignUserRole>>, TError,{data: BodyType<UserRoleAssignment>}, TContext> => {
+
+const mutationKey = ['assignUserRole'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof assignUserRole>>, {data: BodyType<UserRoleAssignment>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  assignUserRole(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AssignUserRoleMutationResult = NonNullable<Awaited<ReturnType<typeof assignUserRole>>>
+    export type AssignUserRoleMutationBody = BodyType<UserRoleAssignment>
+    export type AssignUserRoleMutationError = ErrorType<void>
+
+    /**
+ * @summary Assign a user's role
+ */
+export const useAssignUserRole = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof assignUserRole>>, TError,{data: BodyType<UserRoleAssignment>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof assignUserRole>>,
+        TError,
+        {data: BodyType<UserRoleAssignment>},
+        TContext
+      > => {
+      return useMutation(getAssignUserRoleMutationOptions(options));
     }
 

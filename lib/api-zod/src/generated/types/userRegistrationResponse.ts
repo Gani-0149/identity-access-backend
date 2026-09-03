@@ -5,9 +5,9 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
-import type { UserRegistration } from './userRegistration';
+import type { User } from './user';
 
 export interface UserRegistrationResponse {
   success: boolean;
-  user: UserRegistration;
+  user: User;
 }

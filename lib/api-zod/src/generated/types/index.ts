@@ -7,7 +7,9 @@
  */
 
 export * from './healthStatus';
+export * from './user';
 export * from './userRegistration';
 export * from './userRegistrationResponse';
 export * from './userRole';
-export * from './userRoleRole';
+export * from './userRoleAssignment';
+export * from './userRoleAssignmentResponse';

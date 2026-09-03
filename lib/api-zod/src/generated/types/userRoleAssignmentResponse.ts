@@ -5,7 +5,9 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { User } from './user';
 
-export interface UserRole {
-  role: string;
+export interface UserRoleAssignmentResponse {
+  success: boolean;
+  user: User;
 }

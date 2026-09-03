@@ -9,15 +9,8 @@ export interface HealthStatus {
   status: string;
 }
 
-export type UserRoleRole = typeof UserRoleRole[keyof typeof UserRoleRole];
-
-
-export const UserRoleRole = {
-  USER: 'USER',
-} as const;
-
 export interface UserRole {
-  role: UserRoleRole;
+  role: string;
 }
 
 export interface UserRegistration {
@@ -25,8 +18,24 @@ export interface UserRegistration {
   name: string;
 }
 
+export interface User {
+  address: string;
+  name: string;
+  role: string;
+}
+
 export interface UserRegistrationResponse {
   success: boolean;
-  user: UserRegistration;
+  user: User;
+}
+
+export interface UserRoleAssignment {
+  address: string;
+  role: string;
+}
+
+export interface UserRoleAssignmentResponse {
+  success: boolean;
+  user: User;
 }
 

@@ -45,6 +45,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/UserRole"
+        "404":
+          description: User not found
   /user/register:
     post:
       operationId: registerUser
@@ -66,6 +68,29 @@ paths:
                 $ref: "#/components/schemas/UserRegistrationResponse"
         "400":
           description: Invalid registration data
+  /user/assign-role:
+    post:
+      operationId: assignUserRole
+      tags: [user]
+      summary: Assign a user's role
+      description: Updates the role for a registered user in the current server process
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserRoleAssignment"
+      responses:
+        "200":
+          description: User role assigned
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserRoleAssignmentResponse"
+        "400":
+          description: Invalid role assignment data
+        "404":
+          description: User not found
 components:
   schemas:
     HealthStatus:
@@ -80,7 +105,6 @@ components:
       properties:
         role:
           type: string
-          enum: [USER]
       required:
         - role
     UserRegistration:
@@ -93,13 +117,46 @@ components:
       required:
         - address
         - name
+    User:
+      type: object
+      properties:
+        address:
+          type: string
+        name:
+          type: string
+        role:
+          type: string
+      required:
+        - address
+        - name
+        - role
     UserRegistrationResponse:
       type: object
       properties:
         success:
           type: boolean
         user:
-          $ref: "#/components/schemas/UserRegistration"
+          $ref: "#/components/schemas/User"
+      required:
+        - success
+        - user
+    UserRoleAssignment:
+      type: object
+      properties:
+        address:
+          type: string
+        role:
+          type: string
+      required:
+        - address
+        - role
+    UserRoleAssignmentResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        user:
+          $ref: "#/components/schemas/User"
       required:
         - success
         - user
