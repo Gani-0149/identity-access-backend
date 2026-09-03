@@ -2,6 +2,7 @@ import { type FormEvent, type ReactNode, useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
   getGetUserRoleQueryKey,
+  useAssignUserRole,
   useGetUserRole,
   useRegisterUser,
 } from '@workspace/api-client-react';
@@ -21,6 +22,17 @@ type RegistrationResponse = {
   user?: {
     address: string;
     name: string;
+    role: string;
+  };
+  error?: string;
+};
+
+type RoleAssignmentResponse = {
+  success: boolean;
+  user?: {
+    address: string;
+    name: string;
+    role: string;
   };
   error?: string;
 };
@@ -34,6 +46,11 @@ function Home() {
   const [registrationResponse, setRegistrationResponse] =
     useState<RegistrationResponse | null>(null);
   const [registrationError, setRegistrationError] = useState('');
+  const [assignmentAddress, setAssignmentAddress] = useState('');
+  const [assignmentRole, setAssignmentRole] = useState('');
+  const [assignmentResponse, setAssignmentResponse] =
+    useState<RoleAssignmentResponse | null>(null);
+  const [assignmentError, setAssignmentError] = useState('');
 
   const roleQuery = useGetUserRole(connectedAddress, {
     query: {
@@ -42,6 +59,7 @@ function Home() {
     },
   });
   const registerMutation = useRegisterUser();
+  const assignRoleMutation = useAssignUserRole();
 
   const handleConnect = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -83,6 +101,42 @@ function Home() {
         error instanceof Error
           ? error.message
           : 'Registration failed. Please try again.',
+      );
+    }
+  };
+
+  const handleAssignRole = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const normalizedAddress = assignmentAddress.trim();
+    const normalizedRole = assignmentRole.trim();
+
+    setAssignmentResponse(null);
+    setAssignmentError('');
+
+    if (!normalizedAddress || !normalizedRole) {
+      setAssignmentError('Enter both an address and a role.');
+      return;
+    }
+
+    try {
+      const response = await assignRoleMutation.mutateAsync({
+        data: {
+          address: normalizedAddress,
+          role: normalizedRole,
+        },
+      });
+      setAssignmentResponse(response);
+
+      if (connectedAddress === normalizedAddress) {
+        void queryClient.invalidateQueries({
+          queryKey: getGetUserRoleQueryKey(normalizedAddress),
+        });
+      }
+    } catch (error) {
+      setAssignmentError(
+        error instanceof Error
+          ? error.message
+          : 'Role assignment failed. Please try again.',
       );
     }
   };
@@ -161,6 +215,45 @@ function Home() {
               <p className="error">{registrationError}</p>
             ) : registrationResponse ? (
               <pre>{JSON.stringify(registrationResponse, null, 2)}</pre>
+            ) : (
+              <p className="muted">The API response will appear here.</p>
+            )}
+          </div>
+        </section>
+
+        <section className="section">
+          <h2>Assign a role</h2>
+          <form className="role-assignment-form" onSubmit={handleAssignRole}>
+            <label htmlFor="assignment-address">Address</label>
+            <input
+              id="assignment-address"
+              value={assignmentAddress}
+              onChange={(event) => setAssignmentAddress(event.target.value)}
+              placeholder="Wallet address"
+              autoComplete="off"
+              spellCheck={false}
+            />
+
+            <label htmlFor="assignment-role">Role</label>
+            <input
+              id="assignment-role"
+              value={assignmentRole}
+              onChange={(event) => setAssignmentRole(event.target.value)}
+              placeholder="e.g. ADMIN"
+              autoComplete="off"
+            />
+
+            <button type="submit" disabled={assignRoleMutation.isPending}>
+              {assignRoleMutation.isPending ? 'Assigning...' : 'Assign Role'}
+            </button>
+          </form>
+
+          <div className="assignment-result" aria-live="polite">
+            <h3>Assignment result</h3>
+            {assignmentError ? (
+              <p className="error">{assignmentError}</p>
+            ) : assignmentResponse ? (
+              <pre>{JSON.stringify(assignmentResponse, null, 2)}</pre>
             ) : (
               <p className="muted">The API response will appear here.</p>
             )}

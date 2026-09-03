@@ -150,27 +150,32 @@ button:hover:not(:disabled) {
   font-size: 0.8rem;
 }
 
-.registration-form {
+.registration-form,
+.role-assignment-form {
   display: flex;
   flex-direction: column;
 }
 
-.registration-form input + label {
+.registration-form input + label,
+.role-assignment-form input + label {
   margin-top: 16px;
 }
 
-.registration-form button {
+.registration-form button,
+.role-assignment-form button {
   align-self: flex-start;
   margin-top: 20px;
 }
 
-.registration-result {
+.registration-result,
+.assignment-result {
   margin-top: 24px;
   padding-top: 20px;
   border-top: 1px solid #e2e6ec;
 }
 
-.registration-result h3 {
+.registration-result h3,
+.assignment-result h3 {
   margin: 0 0 12px;
   font-size: 0.95rem;
 }
