@@ -68,6 +68,8 @@ paths:
                 $ref: "#/components/schemas/UserRegistrationResponse"
         "400":
           description: Invalid registration data
+        "409":
+          description: User already exists
   /user/assign-role:
     post:
       operationId: assignUserRole

@@ -1,4 +1,5 @@
 import { Router, type IRouter } from "express";
+import { eq } from "drizzle-orm";
 import {
   AssignUserRoleBody,
   AssignUserRoleResponse,
@@ -6,20 +7,20 @@ import {
   RegisterUserBody,
   RegisterUserResponse,
 } from "@workspace/api-zod";
+import { db, usersTable } from "@workspace/db";
 
 const router: IRouter = Router();
 
-type RegisteredUser = {
-  address: string;
-  name: string;
-  role: string;
-};
-
-const registeredUsers: RegisteredUser[] = [];
-
-router.get("/user/:address/role", (req, res) => {
-  const address = req.params.address.trim();
-  const user = registeredUsers.find((registeredUser) => registeredUser.address === address);
+router.get("/user/:address/role", async (req, res): Promise<void> => {
+  const rawAddress = Array.isArray(req.params.address)
+    ? req.params.address[0]
+    : req.params.address;
+  const address = rawAddress.trim();
+  const [user] = await db
+    .select()
+    .from(usersTable)
+    .where(eq(usersTable.address, address))
+    .limit(1);
 
   if (!user) {
     res.status(404).json({ error: "User not found" });
@@ -29,7 +30,7 @@ router.get("/user/:address/role", (req, res) => {
   res.json(GetUserRoleResponse.parse({ role: user.role }));
 });
 
-router.post("/user/register", (req, res) => {
+router.post("/user/register", async (req, res): Promise<void> => {
   const parsed = RegisterUserBody.safeParse(req.body);
 
   if (!parsed.success) {
@@ -37,17 +38,28 @@ router.post("/user/register", (req, res) => {
     return;
   }
 
-  const user: RegisteredUser = {
-    address: parsed.data.address.trim(),
-    name: parsed.data.name.trim(),
-    role: "USER",
-  };
+  const address = parsed.data.address.trim();
+  const name = parsed.data.name.trim();
+  if (!address || !name) {
+    res.status(400).json({ error: "address and name are required" });
+    return;
+  }
 
-  registeredUsers.push(user);
+  const [user] = await db
+    .insert(usersTable)
+    .values({ address, name, role: "USER" })
+    .onConflictDoNothing({ target: usersTable.address })
+    .returning();
+
+  if (!user) {
+    res.status(409).json({ error: "User already exists" });
+    return;
+  }
+
   res.status(201).json(RegisterUserResponse.parse({ success: true, user }));
 });
 
-router.post("/user/assign-role", (req, res) => {
+router.post("/user/assign-role", async (req, res): Promise<void> => {
   const parsed = AssignUserRoleBody.safeParse(req.body);
 
   if (!parsed.success) {
@@ -62,13 +74,17 @@ router.post("/user/assign-role", (req, res) => {
     return;
   }
 
-  const user = registeredUsers.find((registeredUser) => registeredUser.address === address);
+  const [user] = await db
+    .update(usersTable)
+    .set({ role })
+    .where(eq(usersTable.address, address))
+    .returning();
+
   if (!user) {
     res.status(404).json({ error: "User not found" });
     return;
   }
 
-  user.role = role;
   res.json(AssignUserRoleResponse.parse({ success: true, user }));
 });
 
